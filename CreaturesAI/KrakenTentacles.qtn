@@ -1,0 +1,45 @@
+#define KRAKEN_TENTACLES 6
+
+component KrakenTentacles
+{
+    array<EntityRef>[KRAKEN_TENTACLES] tentacles;
+    FP minTimeToStay;
+    FP maxTimeToStay;
+    FP minTimeToHide;
+    FP maxTimeToHide;
+    FP hidingAnimationTime;
+    FP showingAnimationTime;
+    FP tauntAnimationTime; 
+    FP spawnRadius;
+    FP RadiusAroundPlayer;
+    FP ForwardMultiplier;
+    FP checkDistanceAfter;
+    FP distanceFromTentacles;
+    [ExcludeFromPrototype] bool EmemyInRange;
+    [ExcludeFromPrototype] FP SpawnWait;
+    //[ExcludeFromPrototype] int TotalSpawned;
+    
+}
+
+component Tentacle
+{
+    [ExcludeFromPrototype] EntityRef Kraken;
+    [ExcludeFromPrototype] TentacleState currentState;
+    [ExcludeFromPrototype] FP stateTime;
+    [ExcludeFromPrototype] bool attackPlayer;
+    [ExcludeFromPrototype] FPVector3 spawnPosition;
+}
+
+enum TentacleState
+{
+    Idle,
+    Hidden,
+    Attacking,
+    Taunting,
+}
+
+event EnemyTaunt{EntityRef enemyEntity;}
+
+event TentacleHide{EntityRef enemyEntity;}
+
+event TentacleSpawn{EntityRef enemyEntity;}

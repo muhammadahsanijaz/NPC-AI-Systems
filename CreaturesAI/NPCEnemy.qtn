@@ -1,0 +1,174 @@
+component EnemyAI
+{
+	[ExcludeFromPrototype] FPVector3 targetPosition;
+
+	[ExcludeFromPrototype] EnemyState state;
+	[ExcludeFromPrototype] EntityRef spawnPoint;
+	[ExcludeFromPrototype] EnemyType enemyType;
+	EnemyTier enemyTier;
+	EnemyBehaviour enemyBehaviour;
+	AttackType attackType;
+	EnemyRank enemyRank;
+	//[ExcludeFromPrototype] PlayerFaction faction;
+	
+	EnemyStats stats;
+	ProjectileStats projectileStats;
+	FP damageOverTime;
+	[ExcludeFromPrototype] bool attackOnProvokedOnly;
+	[ExcludeFromPrototype] PlayerFaction faction;
+	[ExcludeFromPrototype] bool hasRecentlyRammed;
+	[ExcludeFromPrototype] bool delayedAttackDone;
+	[ExcludeFromPrototype] bool isAttackCooldown;
+	[ExcludeFromPrototype] bool isDead;
+	[ExcludeFromPrototype] bool isAttacking;
+	[ExcludeFromPrototype] bool forceFollowEnemy;
+
+	[ExcludeFromPrototype] bool IsStarted;
+	[ExcludeFromPrototype] FP meleeAttackAnimDelay;
+	[ExcludeFromPrototype] FP rangedAttackAnimDelay;
+	[ExcludeFromPrototype] bool currentAttack1on;
+	[ExcludeFromPrototype] bool currentAttack2on;
+	[ExcludeFromPrototype] FP currentAttack1Timer;
+	[ExcludeFromPrototype] FP currentAttack2Timer;
+	[ExcludeFromPrototype] FP attackAngleToShip;
+	[ExcludeFromPrototype] EntityRef targetShip;
+	[ExcludeFromPrototype] FPVector3 normalTargetPosition;
+	[ExcludeFromPrototype] FP shipSearchTime;
+    [ExcludeFromPrototype] PlayerRef LastPlayerDamagedFrom;
+	[ExcludeFromPrototype] FP damageOverTime;
+	[ExcludeFromPrototype] FP overTimeDamageTimer;
+	[ExcludeFromPrototype] int bossRewardPer10PercentHealth;
+	[ExcludeFromPrototype] int patrolPathIndex;
+    [ExcludeFromPrototype] asset_ref<PatrolPath> patrolPath;
+    
+	[ExcludeFromPrototype] FP lastTimeAttackedByPlayerShip;
+	[ExcludeFromPrototype] EnemyDirectionFollowingPatrolPath enemyDirectionFollowingPatrolPath;
+	[ExcludeFromPrototype] FP waitForNextPatrolPath;
+	
+    [ExcludeFromPrototype] FP slowSpeedStack;
+    [ExcludeFromPrototype] FP slowSpeedTimer;
+
+	[ExcludeFromPrototype] dictionary<int, FP> damageTakenFromPlayers;
+	
+}
+
+
+
+enum EnemyRank
+{
+    Normal,
+    Boss,
+}
+
+enum EnemyTier
+{
+    Tier1,
+    Tier2,
+    Tier3,
+    Tier4,
+}
+
+enum EnemyDirectionFollowingPatrolPath
+{
+    Straight,
+    Reverse,
+}
+
+component AIEnemyAnimation
+{
+	FP spawnProjectileDelay;
+	FP spawnProjectileDelayAfter;
+	FP meleeAttackDelay;
+	[ExcludeFromPrototype] FP moveSpeed;
+	GauntletEnemyAnimState curAnimState;	
+}
+
+
+component AIProjectile
+{
+	ProjectileDestructionReason DestructionReason;
+	EntityRef OriginShipEntity;
+	EntityRef OriginShipVisible;
+	PlayerRef OriginPlayer;
+	FPVector3 Velocity;
+	WeaponType WeaponType;
+    bool MarkedForDestruction;
+    bool IsCaptainsCannons;
+    FP Falloff;
+    int DestFrame;
+    int Damage;
+    int Range;
+	FP DistanceTraveled;
+	[ExcludeFromPrototype] EntityRef ShooterEntity;
+	[ExcludeFromPrototype] PlayerFaction faction;
+	[ExcludeFromPrototype] ProjectileDirectionType directionType;
+    [ExcludeFromPrototype] bool followingAnimation;
+	[ExcludeFromPrototype] int currentlaunchAnimationIndex;
+	[ExcludeFromPrototype] FPVector3 LaunchAnimationPosition;
+	// Mortar Path Vars
+	FP mortarLaunchSpeed;
+    FP mortarHeight;
+    [ExcludeFromPrototype] FPVector3 mortarInitialPosition;
+    [ExcludeFromPrototype] FPVector3 mortarTargetPosition;
+    [ExcludeFromPrototype] FP motarTimeElapsed;
+    [ExcludeFromPrototype] FP motarAngle;
+    [ExcludeFromPrototype] FP horizontalVelocity;
+    [ExcludeFromPrototype] FP verticalVelocity;
+}
+
+enum ProjectileDirectionType
+{
+    Straight,
+    Mortar,
+    CanonShot,
+    Around,
+}
+
+
+struct EnemyStats
+{
+	FP baseHealth;
+	FP baseDamage;
+	FP baseMeleeDamage;
+	FP baseMeleeRange;
+	FP baseAttackRange;
+	FP baseSightRange;
+	FP baseFollowRange;
+	FP baseMovementSpeed;
+	FP baseAttackDelayBeforeHit;
+	FP baseAttackCooldown;
+	FP basePauseMovementAfterAttacking;
+	FP FaceTargetSpeed;
+	FP currentHealth;
+	FP currentDamage;
+	FP currentAttackRange;
+	FP currentMovementSpeed;
+	FP currentAttackDelayBeforeHit;
+	FP currentAttackCooldown;
+	FP currentPauseMovementAfterAttacking;
+	
+	[ExcludeFromPrototype] array<FP>[TOTAL_PERKS] Debuffs;
+
+	EnemyType enemyType;
+	
+}
+
+struct ProjectileStats
+{
+    ProjectileDirectionType projectileDirectionType;
+    FP projectileCount;
+    FP projectileSpeed;
+    int projectileCanonShotFalloff;
+    FPVector3 projectileSpawnOffset;
+    bool isProjectileFollowAnimation;
+    bool IsConsistantProjectileDelay;
+    bool applyCalculatedFalloff;
+    FP ConsistantProjectileDelay;
+    list<ProjectileLaunchAnimation> animationList;
+    [ExcludeFromPrototype] FP currentConsistantProjectileCount;
+}
+
+struct ProjectileLaunchAnimation{
+    FP time;
+    FPVector3 Position;
+}

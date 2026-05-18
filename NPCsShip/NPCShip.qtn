@@ -1,0 +1,145 @@
+﻿#define MAX_NPC_SHIPS 6
+
+struct NPCShipSail
+{
+    [ExcludeFromPrototype] int numberOfSailsOpened;
+    [ExcludeFromPrototype] FP sailRotation;
+    [ExcludeFromPrototype] FP maxForce;
+    [ExcludeFromPrototype] FP rateOfRotation;
+}
+
+struct NPCShipNavigator
+{
+    
+    [ExcludeFromPrototype] FPVector3 centerPoint;
+    [ExcludeFromPrototype] NavigationMode navigationMode;
+    [ExcludeFromPrototype] AttackingMode attackingMode;
+    [ExcludeFromPrototype] asset_ref<PatrolPath> patrolPath;
+    
+    [ExcludeFromPrototype] FP turnSpeed;
+    [ExcludeFromPrototype] FP targetRadius;
+    [ExcludeFromPrototype] FP targetSightRadius;
+    [ExcludeFromPrototype] FP targetRangeRadius;
+    [ExcludeFromPrototype] FP lerpRate;
+    [ExcludeFromPrototype] FP patrolDistance;
+    [ExcludeFromPrototype] FP attackDistance;
+    [ExcludeFromPrototype] FP chaseSpeed;
+    
+    [ExcludeFromPrototype] NPCStages currentStage;
+    //[ExcludeFromPrototype] bool hasReachedTarget;
+    [ExcludeFromPrototype] int currentIndex;
+    [ExcludeFromPrototype] FP speedRegulator;
+    
+    //[ExcludeFromPrototype] FP angleToTarget;
+    
+    [ExcludeFromPrototype] bool forcePatrol;
+    [ExcludeFromPrototype] FP combatStateTimer;
+    [ExcludeFromPrototype] int combatStateCounter;
+    
+    
+}
+
+enum NPCStages
+{
+    First,
+    Second,
+    Third,
+    Fourth
+}
+
+enum NavigationMode
+{
+    Patrol,
+    Manovering,
+    Attacking,
+    Flanking,
+    Pursuing,
+    Ramming,
+}
+
+enum AttackingMode
+{
+    Orbit,
+    CrossT,
+    SternRake,
+    Flanking,
+    BrakeTurn,
+    ShearDodge,
+    KnifeOrbit,
+    ClampSide,
+}
+
+component NPCShip
+{
+    asset_ref<NPCShipData> npcShipData;
+	[ExcludeFromPrototype] EntityRef targetRef;
+	[ExcludeFromPrototype] FP targetTimer;
+    [ExcludeFromPrototype] NPCShipSail sail;
+    [ExcludeFromPrototype] NPCShipNavigator navigator;
+	[ExcludeFromPrototype] EntityRef WorldEntity;
+	[ExcludeFromPrototype] EntityRef VisibleEntity;
+	[ExcludeFromPrototype] EntityRef ImpactEntity;
+	[ExcludeFromPrototype] FPVector2 RotationImpactTarget;
+	[ExcludeFromPrototype] FP Hull;
+	[ExcludeFromPrototype] int HullMax;
+	[ExcludeFromPrototype] int HullStart;
+	[ExcludeFromPrototype] FP Shield;
+	[ExcludeFromPrototype] int ShieldMax;
+	[ExcludeFromPrototype] array<WeaponSlot>[8] WeaponSlots;
+	[ExcludeFromPrototype] int indexX;
+	[ExcludeFromPrototype] int indexY;
+    [ExcludeFromPrototype] int ArrayIndex;
+	[ExcludeFromPrototype] FP cannonCooldown;
+	[ExcludeFromPrototype] FP manoverCooldown;
+	[ExcludeFromPrototype] FP manoverAngle;
+	[ExcludeFromPrototype] FP DeathSink;
+	[ExcludeFromPrototype] bool Extracting;
+    [ExcludeFromPrototype] NPCsShipSpawnPointData spawnPoint;
+	
+    [ExcludeFromPrototype] FP lastTimeAttackedByPlayerShip;
+	[ExcludeFromPrototype] EntityRef lastTargetShip;
+	[ExcludeFromPrototype] EntityRef pairNPCShip;
+	
+	[ExcludeFromPrototype] int Damage;
+	[ExcludeFromPrototype] int NuggiesDamage;
+	[ExcludeFromPrototype] int NuggiesPlunder;
+	[ExcludeFromPrototype] int FullRepairCost;
+	[ExcludeFromPrototype] FP slowSpeedStack;
+	[ExcludeFromPrototype] FP slowSpeedTimer;
+	FP distanceToPatrolTarget;
+	[ExcludeFromPrototype] NavEphemeral NavTmp;
+
+	[ExcludeFromPrototype] dictionary<int, FP> damageTakenFromPlayers;
+    [ExcludeFromPrototype] bool hasReported;
+}
+
+struct NavEphemeral
+{
+    byte avoidStrategy;           // 0 = Variant-2 (sampling), 1 = Variant-1 (lock&release)
+    FP   avoidStrategyTimer;      // time left in current strategy (used for the 30s fallback)
+    FP   avoidProgressTimer;      // accumulates time with poor progress under Variant-2
+    FP   avoidLastGoalDist;       // last frame's planar (XZ) distance to goal (for progress check)
+
+// Variant-1 scratch
+    FP   avoidLockTimer;          // V1: remaining "locked" time
+    FP   avoidCooldownTimer;      // V1: hysteresis after release
+    FP   avoidClearTimer;      // V1: hysteresis after release
+    int  avoidLockSide;           // V1: -1 left, +1 right
+
+// Variant-2 scratch
+    FP   sampleCommitTimer;       // V2: remaining commit time for chosen corridor
+    FP   sampleChosenAngle;  
+
+    FP stuckTimer;
+    FP unstickTimer;
+    int lastAvoidSign;  // -1 left, +1 right, 0 none
+    
+    EntityRef combatAnchorTarget;
+    FPVector3 minionHoldPos; 
+    FPVector3 combatAnchor;        // center of the fight “arena”
+    byte       combatAnchorActive;  // 0/1
+    byte       combatLeashEngaged;
+    byte      minionHoldActive;   // 0/1: are we holding in formation?
+    
+}
+

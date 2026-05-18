@@ -1,0 +1,198 @@
+// =============================================================================
+// AICrewComponents.qtn  (UPDATED — diff from original marked with [ADDED])
+// Place in: Assets/QuantumUser/Simulation/AI/
+//
+// CHANGES:
+//   AICrewBrain: added NavPath, NavPathLength, NavPathIndex, CurrentDeckLevel
+//   AIShipCrewData: added cached crew count fields (perf — avoids entity scans)
+//   New enum: (none added)
+// =============================================================================
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENUMS (unchanged)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum AICrewState
+{
+    Idle,
+    PatrollingDeck,
+    MovingToTarget,
+    CollectingAmmo,
+    EquippedCannon,
+    Repairing,
+    Piloting,
+    Fishing,
+    Jumping,
+    SailSetting,
+}
+
+enum RepairUrgency
+{
+    None,
+    Low,
+    High,
+    Critical
+}
+
+enum AttackSide
+{
+    None,
+    Left,
+    Right,
+    Both
+}
+
+enum ThreatLevel
+{
+    Peaceful,
+    Skirmish,
+    Battle,
+    Overwhelmed
+}
+
+enum DeckNodeType
+{
+    AmmoPile,
+    CannonLeft,
+    CannonRight,
+    Generator,
+    WheelArea,
+    PatrolPoint
+}
+
+// Determines how the signal board gets its data
+enum AIShipMode
+{
+    FullAI,             // AI pilot + AI crew. Signal board written by AI Pilot (Phase 2) or auto-updater
+    PlayerPilotAICrew   // Human player pilots, AI crew assists. Signal board reads player intent
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STRUCTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// The signal board is the ONLY interface between Pilot AI and Crew AI.
+// Pilot writes it. Crew reads it. They never talk directly.
+struct CrewSignalBoard
+{
+    int LeftCannonsNeeded;
+    int RightCannonsNeeded;
+    RepairUrgency RepairUrgency;
+    AttackSide PreferredAttackSide;
+    ThreatLevel ThreatLevel;
+}
+
+// A position on the ship deck that crew can navigate to
+struct DeckNode
+{
+    FPVector3 LocalPosition;
+    DeckNodeType NodeType;
+    int NodeIndex;          // e.g., which cannon (0, 1, 2) or which patrol point
+    bool IsReserved;
+    int ReservedByCrewId;   // -1 if not reserved
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPONENTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Attached to each AI crew member entity
+component AICrewBrain
+{
+    [ExcludeFromPrototype] AICrewState CurrentState;
+    
+    // Identity
+    [ExcludeFromPrototype] int CrewId;
+    [ExcludeFromPrototype] int ShipIndex;
+    [ExcludeFromPrototype] EntityRef ShipVisibleEntity;
+    [ExcludeFromPrototype] PlayerFaction Faction;
+    [ExcludeFromPrototype] bool IsPilot;
+    
+    // Navigation — legacy target (still used for HandleArrival destination type)
+    [ExcludeFromPrototype] FPVector3 TargetLocalPosition;
+    [ExcludeFromPrototype] int TargetNodeIndex;
+    [ExcludeFromPrototype] DeckNodeType TargetNodeType;
+    [ExcludeFromPrototype] bool HasReachedTarget;
+
+    // [ADDED] Deck-aware waypoint path
+    // MaxNavPathLength = 6 (matches ShipNavigation.MaxNavPathLength)
+    // Layout: [stair1_lower, stair1_upper, stair2_lower, stair2_upper, ..., finalDest]
+    [ExcludeFromPrototype] array<FPVector3>[6] NavPath;
+    [ExcludeFromPrototype] int NavPathLength;     // 0 = no active path
+    [ExcludeFromPrototype] int NavPathIndex;      // current waypoint being pursued
+
+    // [ADDED] Which deck (0=lower,1=mid,2=upper) this crew member is currently on.
+    // Updated once per BrainTick (cheap — just a Y threshold check).
+    // Used by BuildPath to determine routing.
+    [ExcludeFromPrototype] int CurrentDeckLevel;
+    
+    // Cannon assignment
+    [ExcludeFromPrototype] int AssignedCannonIndex;
+    [ExcludeFromPrototype] bool CarryingAmmo;
+    
+    // Ship-relative position tracking
+    [ExcludeFromPrototype] FPVector3 LocalPositionOnShip;
+    [ExcludeFromPrototype] FPVector3 diff;
+    [ExcludeFromPrototype] FP Trow;
+    
+    // Ship state flags
+    [ExcludeFromPrototype] bool Extracting;
+    [ExcludeFromPrototype] bool Repairing;
+    [ExcludeFromPrototype] bool RepairingComponent;
+    
+    // Timers
+    [ExcludeFromPrototype] FP StateTimer;
+    [ExcludeFromPrototype] FP ArcWaitTimer;
+    [ExcludeFromPrototype] FP BrainTickAccumulator;
+    
+    // Movement output
+    [ExcludeFromPrototype] FPVector3 DesiredMoveDirection;
+    [ExcludeFromPrototype] FP DesiredMoveSpeed;
+    [ExcludeFromPrototype] bool DesiredInteract;
+    [ExcludeFromPrototype] FPVector2 DesiredAimDirection;
+    [ExcludeFromPrototype] bool DesiredFire;
+}
+
+// Attached to the ship entity
+component AIShipCrewData
+{
+    [ExcludeFromPrototype] CrewSignalBoard SignalBoard;
+    [ExcludeFromPrototype] int AICrewCount;
+    [ExcludeFromPrototype] bool IsAIControlled;
+    [ExcludeFromPrototype] AIShipMode ShipMode;
+    
+    // Player intent tracking (PlayerPilotAICrew mode)
+    [ExcludeFromPrototype] bool PlayerIsPiloting;
+    [ExcludeFromPrototype] bool PlayerFiredCaptainCannon;
+    [ExcludeFromPrototype] FP PlayerFireCooldownTracker;
+    [ExcludeFromPrototype] FP PlayerSteerValue;
+    [ExcludeFromPrototype] bool ShipTakingDamage;
+    [ExcludeFromPrototype] FP LastHullSnapshot;
+    
+    // AI Pilot tracking
+    [ExcludeFromPrototype] bool AIPilotAtWheel;
+    [ExcludeFromPrototype] EntityRef PilotCrewEntity;
+    
+    // Deck node layout
+    [ExcludeFromPrototype] FPVector3 AmmoPilePosition;
+    [ExcludeFromPrototype] FPVector3 GeneratorPosition;
+    [ExcludeFromPrototype] array<FPVector3>[6] CannonPositions;
+    [ExcludeFromPrototype] array<bool>[6] CannonIsLeftSide;
+    [ExcludeFromPrototype] array<bool>[6] CannonNodeReserved;
+    [ExcludeFromPrototype] array<int>[6] CannonNodeReservedBy;
+    [ExcludeFromPrototype] bool AmmoPileReserved;
+    [ExcludeFromPrototype] int AmmoPileReservedBy;
+    [ExcludeFromPrototype] bool GeneratorReserved;
+    [ExcludeFromPrototype] int GeneratorReservedBy;
+    
+    // Patrol waypoints
+    [ExcludeFromPrototype] array<FPVector3>[8] PatrolPoints;
+
+    // [ADDED] Cached crew state counts — updated in BrainTick by the crew members
+    // themselves (increment on state enter, decrement on state leave).
+    // Replaces the O(N) entity-filter scans in CountCrewInState / CountCrewOnSide.
+    [ExcludeFromPrototype] int CachedRepairingCount;       // crew currently Repairing
+    [ExcludeFromPrototype] int CachedMovingToRepairCount;  // crew en-route to Generator
+    [ExcludeFromPrototype] int CachedLeftCannonCount;      // crew at left cannons
+    [ExcludeFromPrototype] int CachedRightCannonCount;     // crew at right cannons
+}

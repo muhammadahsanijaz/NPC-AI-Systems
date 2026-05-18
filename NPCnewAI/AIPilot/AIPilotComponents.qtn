@@ -1,0 +1,103 @@
+// =============================================================================
+// AIPilotComponents.qtn
+// Place in: Assets/QuantumUser/Simulation/AI/
+//
+// Defines all AI Pilot data structures for the deterministic simulation.
+// The AIPilotBrain component is added to the Ship's visible entity
+// (same entity that has Ship + AIShipCrewData).
+// =============================================================================
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum PilotState
+{
+    Idle,               // No mission, waiting
+    Navigating,         // Moving toward waypoint, no combat
+    ApproachEngage,     // Enemy spotted, closing to engagement range
+    BroadsideStrafe,    // Holding broadside angle, firing side cannons
+    CaptainCannonFire,  // Close range, using captain cannons
+    Evading,            // Taking too much damage, breaking off
+    Orbit,              // Circling tower or guard point
+    PatrolMove,         // Moving between patrol waypoints
+    AdjustingSail,      // Briefly adjusting sail (sub-state, 1-2s)
+    Retreating          // Returning to port
+}
+
+enum EngagementPhase
+{
+    None,
+    Approach,           // Closing distance to enemy
+    AngleAdjust,        // Rotating to achieve broadside angle
+    Broadside,          // At range and at ~90 degrees, firing
+    CloseRange,         // Very close, captain cannons
+    Disengage           // Breaking off
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STRUCTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Output of the Engagement Solver, consumed by the input provider
+struct EngagementOutput
+{
+    FP DesiredSteer;            // -1 to 1
+    FP DesiredThrottle;         // 0 to 1 (maps to Ship.Sails)
+    bool FireCaptainCannons;
+    bool FireSideCannons;
+    AttackSide WhichSide;       // LEFT, RIGHT, BOTH
+    EngagementPhase Phase;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPONENT
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Attached to the ship's visible entity (alongside Ship + AIShipCrewData)
+component AIPilotBrain
+{
+    // State
+    [ExcludeFromPrototype] PilotState CurrentState;
+    [ExcludeFromPrototype] PilotState PreviousState;
+    [ExcludeFromPrototype] bool IsActive;               // false for player-piloted ships
+    
+    // Target tracking
+    [ExcludeFromPrototype] EntityRef TargetEnemy;        // current engagement target
+    [ExcludeFromPrototype] FPVector3 TargetPosition;     // world position of target or waypoint
+    [ExcludeFromPrototype] FP DistanceToTarget;
+    [ExcludeFromPrototype] FP AngleToTarget;             // signed angle from our forward to target
+    [ExcludeFromPrototype] FP RelativeBearing;           // angle of target relative to our heading (0=front, 90=right, -90=left)
+    
+    // Engagement solver output
+    [ExcludeFromPrototype] EngagementOutput Engagement;
+    
+    // Waypoint navigation
+    [ExcludeFromPrototype] FPVector3 CurrentWaypoint;
+    [ExcludeFromPrototype] bool HasWaypoint;
+    [ExcludeFromPrototype] FP WaypointArrivalRadius;
+    
+    // Timers
+    [ExcludeFromPrototype] FP StateTimer;
+    [ExcludeFromPrototype] FP BrainTickAccumulator;
+    [ExcludeFromPrototype] FP SailAdjustTimer;           // countdown for ADJUSTING_SAIL sub-state
+    [ExcludeFromPrototype] FP EvadeTimer;                // how long we've been evading
+    [ExcludeFromPrototype] FP CombatEntryTimer;          // prevents instant re-engage after disengage
+    
+    // Engagement solver tuning (can be set per-ship or globally)
+    [ExcludeFromPrototype] FP EngagementRange;           // distance to start broadside (default ~120)
+    [ExcludeFromPrototype] FP CloseRange;                // distance for captain cannons (default ~40)
+    [ExcludeFromPrototype] FP BroadsideTolerance;        // angle tolerance for broadside fire (default ~20 degrees)
+    [ExcludeFromPrototype] FP DetectionRange;            // max range to detect enemies (default ~250)
+    
+    // Sail management
+    [ExcludeFromPrototype] FP DesiredSailLevel;          // 0 to 1, what we want Ship.Sails to be
+    [ExcludeFromPrototype] FP DesiredSteer;              // -1 to 1, what we want Ship.Steer to be
+    
+    // v1/v2 solver toggle (v1 = approach+ram, v2 = broadside)
+    [ExcludeFromPrototype] bool UseBroadsideSolver;      // true = v2, false = v1 fallback
+    
+    // Lead prediction cache
+    [ExcludeFromPrototype] FPVector3 LastEnemyPosition;
+    [ExcludeFromPrototype] FPVector3 EnemyVelocityEstimate;
+}

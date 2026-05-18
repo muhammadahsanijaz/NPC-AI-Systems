@@ -1,0 +1,33 @@
+// =============================================================================
+// AIShipSpawnerComponents.qtn
+// Place in: Assets/QuantumUser/Simulation/AI/
+//
+// Singleton handler for managing AI-piloted ship spawning and respawning.
+// Tracks which AI ships are alive per faction and respawns them after death.
+// =============================================================================
+
+#define MAX_AI_SHIPS_PER_FACTION 6
+
+singleton component AIShipSpawnHandler
+{
+    [ExcludeFromPrototype] bool IsStarted;
+    
+    // Tuning — set these from your game mode setup or FactionSetting asset
+    [ExcludeFromPrototype] int ShipsPerFaction;              // how many AI ships each faction should maintain (default 2)
+    [ExcludeFromPrototype] FP RespawnDelay;                  // seconds after death before respawn (default 30)
+    [ExcludeFromPrototype] int HullPerShip;                  // hull HP for spawned AI ships
+    [ExcludeFromPrototype] int ShieldPerShip;                // shield HP (0 if no shields)
+    [ExcludeFromPrototype] int AICrewPerShip;                // crew members per AI ship (default 3)
+    
+    // Ship type to spawn (index into your ship data paths, same pattern as SpawnSystem)
+    [ExcludeFromPrototype] int ShipTypeIndex;                // 0=Raft, 1=Dinghy, 2=Clockwork, 3=Wraith
+    
+    // Per-faction tracking: entity refs of active AI ships
+    // Using fixed arrays matching MAX_AI_SHIPS_PER_FACTION
+    [ExcludeFromPrototype] array<EntityRef>[MAX_AI_SHIPS_PER_FACTION] RedShips;
+    [ExcludeFromPrototype] array<EntityRef>[MAX_AI_SHIPS_PER_FACTION] BlueShips;
+    
+    // Per-slot respawn timers (countdown, 0 = ready to spawn, -1 = ship alive)
+    [ExcludeFromPrototype] array<FP>[MAX_AI_SHIPS_PER_FACTION] RedRespawnTimers;
+    [ExcludeFromPrototype] array<FP>[MAX_AI_SHIPS_PER_FACTION] BlueRespawnTimers;
+}
